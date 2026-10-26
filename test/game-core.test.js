@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, updateGame, resetGame, hitObstacle, collectFish, TARGET_DISTANCE } from '../src/game-core.js';
+import { createGame, updateGame, resetGame, hitObstacle, collectFish, collectHeart, MAX_LIVES, TARGET_DISTANCE } from '../src/game-core.js';
 
 describe('game core', () => {
   it('starts ready with full fuel', () => {
@@ -44,6 +44,20 @@ describe('game core', () => {
     expect(game.fuel).toBe(68);
     game.status = 'finished';
     expect(collectFish(game)).toBe(false);
+  });
+
+  it('heart restores one life up to the cap', () => {
+    const game = createGame();
+    game.status = 'running';
+    game.lives = 1;
+    expect(collectHeart(game)).toBe(true);
+    expect(game.lives).toBe(2);
+    expect(game.score).toBe(50);
+    game.lives = MAX_LIVES;
+    collectHeart(game);
+    expect(game.lives).toBe(MAX_LIVES);
+    game.status = 'finished';
+    expect(collectHeart(game)).toBe(false);
   });
 
   it('protects against repeated collision during invincibility', () => {

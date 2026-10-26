@@ -92,6 +92,13 @@ export function collectFish(game) {
   return true;
 }
 
+export function collectHeart(game) {
+  if (game.status !== 'running') return false;
+  game.lives = Math.min(MAX_LIVES, game.lives + 1);
+  game.score += 50;
+  return true;
+}
+
 export function hitObstacle(game) {
   if (game.status !== 'running' || game.invincible > 0) return false;
   game.lives -= 1;

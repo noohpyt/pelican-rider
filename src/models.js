@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { material, mesh, sphere, box, rod, setRod, tube, group } from './geometry.js';
+import { material, mesh, sphere, rod, setRod, tube, group } from './geometry.js';
 import { advanceCrank, pedalPosition, solveLeg, steeringAngle, WHEEL_RADIUS } from './animation.js';
 
 const palette = {
@@ -160,39 +160,51 @@ export function updateRider(rig, motion, dt) {
 }
 
 export function createFish() {
-  // 燃料罐：鱼形罐头
-  const fish = new THREE.Group();
-  const can = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.72, 16), palette.fish, fish, [0, 0, 0]);
-  can.rotation.z = Math.PI / 2;
-  mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16), palette.metal, fish, [0.36, 0, 0]);
-  mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16), palette.metal, fish, [-0.36, 0, 0]);
-  const fin = mesh(new THREE.BoxGeometry(0.15, 0.45, 0.06), palette.coral, fish, [0.1, 0.12, 0.32]);
-  fin.rotation.z = 0.35;
-  fish.scale.setScalar(0.85);
-  return fish;
+  // 水桶，桶里有一条活蹦乱跳的小鱼
+  const bucket = new THREE.Group();
+  const wood = material('#a87748', { roughness: 0.85 });
+  mesh(new THREE.CylinderGeometry(0.42, 0.33, 0.55, 16), wood, bucket, [0, 0.28, 0]);
+  for (const [radius, y] of [[0.43, 0.5], [0.35, 0.07]]) {
+    const band = mesh(new THREE.TorusGeometry(radius, 0.025, 8, 24), palette.metal, bucket, [0, y, 0]);
+    band.rotation.x = Math.PI / 2;
+  }
+  mesh(new THREE.TorusGeometry(0.4, 0.02, 8, 20, Math.PI), palette.metal, bucket, [0, 0.55, 0]);
+  mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.03, 16), material('#5fb8c9', { roughness: 0.25 }), bucket, [0, 0.5, 0]);
+  const fish = group(bucket, [0, 0.72, 0]);
+  sphere(fish, palette.fish, [0, 0, 0], [0.09, 0.07, 0.17], 12);
+  const tail = mesh(new THREE.ConeGeometry(0.06, 0.11, 8), palette.coral, fish, [0, 0, 0.17]);
+  tail.rotation.x = Math.PI / 2;
+  sphere(fish, palette.black, [0.055, 0.02, -0.09], [0.018, 0.018, 0.018], 8);
+  sphere(fish, palette.black, [-0.055, 0.02, -0.09], [0.018, 0.018, 0.018], 8);
+  bucket.userData.fish = fish;
+  return bucket;
+}
+
+export function createHeart() {
+  // 红心：只剩一滴血时概率刷新，拾取回一滴血
+  const heart = new THREE.Group();
+  const heartMat = material('#ff4d5e', { roughness: 0.3, emissive: '#a3121f', emissiveIntensity: 0.45 });
+  sphere(heart, heartMat, [-0.13, 0.12, 0], [0.19, 0.19, 0.16], 16);
+  sphere(heart, heartMat, [0.13, 0.12, 0], [0.19, 0.19, 0.16], 16);
+  const tip = mesh(new THREE.ConeGeometry(0.27, 0.4, 4), heartMat, heart, [0, -0.1, 0]);
+  tip.rotation.x = Math.PI;
+  tip.rotation.y = Math.PI / 4;
+  return heart;
 }
 
 export function createObstacle() {
-  // 路上的车辆
-  const car = new THREE.Group();
-  const bodyColors = ['#c94c4c', '#4c7ac9', '#d4a83b', '#5a9c6b', '#7a4cc9'];
-  const bodyColor = bodyColors[Math.floor(Math.random() * bodyColors.length)];
-  const bodyMat = material(bodyColor, { roughness: 0.4, metalness: 0.1 });
-  const glassMat = material('#7ab4c9', { roughness: 0.15, metalness: 0.4 });
-  const wheelMat = material('#2a2a2a', { roughness: 0.9 });
-
-  box(car, bodyMat, [0, 0.55, 0], [1.05, 0.5, 2.1]);
-  box(car, glassMat, [0, 0.92, -0.1], [0.95, 0.32, 1.1]);
-  box(car, material('#e8e8e8'), [0, 0.48, 1.05], [0.9, 0.18, 0.08]);
-  box(car, material('#e84c4c'), [0, 0.52, -1.05], [0.7, 0.18, 0.08]);
-
-  for (const side of [-1, 1]) {
-    for (const z of [-0.65, 0.65]) {
-      const wheel = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 16), wheelMat, car, [side * 0.58, 0.22, z]);
-      wheel.rotation.x = Math.PI / 2;
-    }
-  }
-  return car;
+  // 路上的大石头
+  const rock = new THREE.Group();
+  const rockColors = ['#7d7468', '#8a8175', '#6e675c', '#948b7e'];
+  const rockMat = material(rockColors[Math.floor(Math.random() * rockColors.length)], { roughness: 0.95 });
+  const main = mesh(new THREE.DodecahedronGeometry(0.78, 0), rockMat, rock, [0, 0.58, 0]);
+  main.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+  main.scale.set(1 + Math.random() * 0.25, 0.85 + Math.random() * 0.3, 0.9 + Math.random() * 0.3);
+  const bumpA = mesh(new THREE.DodecahedronGeometry(0.4, 0), rockMat, rock, [0.42, 0.28, 0.25]);
+  bumpA.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+  const bumpB = mesh(new THREE.DodecahedronGeometry(0.3, 0), rockMat, rock, [-0.38, 0.22, -0.2]);
+  bumpB.rotation.set(0, Math.random() * Math.PI, Math.random() * Math.PI);
+  return rock;
 }
 
 export function createPalm() {

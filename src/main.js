@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { createGame, updateGame, resetGame, collectFish, hitObstacle, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
-import { createRider, updateRider, createFish, createObstacle } from './models.js';
+import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
+import { createRider, updateRider, createFish, createObstacle, createHeart } from './models.js';
 import { createWorld } from './world.js';
 import { getParticleMaterial } from './effects.js';
 import './style.css';
@@ -27,7 +27,7 @@ app.innerHTML = `
     <section id="start-screen" class="overlay start-screen">
       <div class="hero-copy">
         <h1>鹈鹕<br><em>骑自行车</em></h1>
-        <p class="intro">自动加速，左右变道。<br>躲开车辆，收集燃料。</p>
+        <p class="intro">自动加速，左右变道。<br>躲开石头，收集水桶。</p>
         <button id="start" class="primary-button">开始 <span>→</span></button>
         <div class="controls"><div><kbd>A</kbd><kbd>←</kbd><span>左移</span></div><div><kbd>D</kbd><kbd>→</kbd><span>右移</span></div></div>
       </div>
@@ -36,7 +36,7 @@ app.innerHTML = `
     <section id="result-screen" class="overlay result-screen hidden" aria-live="polite">
       <div class="result-card"><h2 id="result-title">游戏结束</h2><p id="result-copy"></p><div class="result-stats"><div><strong id="final-score">0</strong><span>SCORE</span></div><div><strong id="final-fish">0</strong><span>FUEL</span></div><div><strong id="best-score">0</strong><span>BEST</span></div></div><button id="restart" class="primary-button">再来一次 <span>↻</span></button><small>按 Enter 重新开始</small></div>
     </section>
-    <section id="help" class="help-card hidden"><button id="close-help" aria-label="关闭操作说明">×</button><h2>操作说明</h2><p><b>A / ←</b> 左移，<b>D / →</b> 右移。</p><p>自动加速。撞上车辆扣生命、减速、扣燃料。收集燃料罐补充燃料。</p><p>燃料耗尽或生命耗尽失败；到达目标距离过关。</p></section>
+    <section id="help" class="help-card hidden"><button id="close-help" aria-label="关闭操作说明">×</button><h2>操作说明</h2><p><b>A / ←</b> 左移，<b>D / →</b> 右移。</p><p>自动加速。撞上石头扣生命、减速、扣燃料。收集水桶补充燃料。只剩一滴血时可能出现红心，拾取回一滴血。</p><p>燃料耗尽或生命耗尽失败；到达目标距离过关。</p></section>
     <div class="touch-controls hidden" id="touch-controls"><button data-key="left" aria-label="左移">←</button><button data-key="right" aria-label="右移">→</button></div>
   </main>`;
 
@@ -79,11 +79,23 @@ const entities = [];
 const lanes = [-3, 0, 3];
 for (let i = 0; i < 40; i++) {
   const type = i % 4 === 0 ? 'fish' : 'obstacle';
-  const object = type === 'fish' ? createFish() : createObstacle();
   const lane = lanes[(i * 7 + Math.floor(i / 3)) % 3];
-  object.position.set(lane, type === 'fish' ? 0.9 : 0, -18 - i * 9.5);
-  scene.add(object);
-  entities.push({ object, type, initialZ: object.position.z, lane, collected: false });
+  if (type === 'fish') {
+    const object = new THREE.Group();
+    const bucket = createFish();
+    const heart = createHeart();
+    heart.visible = false;
+    heart.position.y = 1.1;
+    object.add(bucket, heart);
+    object.position.set(lane, 0, -18 - i * 9.5);
+    scene.add(object);
+    entities.push({ object, type, bucket, heart, variant: 'bucket', initialZ: object.position.z, lane, collected: false });
+  } else {
+    const object = createObstacle();
+    object.position.set(lane, 0, -18 - i * 9.5);
+    scene.add(object);
+    entities.push({ object, type, initialZ: object.position.z, lane, collected: false });
+  }
 }
 
 const particleGeometry = new THREE.SphereGeometry(0.055, 6, 4);
@@ -174,8 +186,8 @@ function showResult() {
 }
 
 const cameraTarget = new THREE.Vector3();
-camera.position.set(0, 3.2, 6.5);
-camera.lookAt(0, 1.2, -6);
+camera.position.set(0, 5.6, 8.2);
+camera.lookAt(0, 0.3, -9);
 let lastTime = performance.now();
 let lastStatus = game.status;
 let elapsed = 0;
@@ -191,14 +203,33 @@ function frame(now) {
         entity.object.position.z -= 380;
         entity.object.visible = true;
         entity.collected = false;
+        if (entity.type === 'fish') {
+          entity.variant = game.lives === 1 && Math.random() < 0.1 ? 'heart' : 'bucket';
+          entity.bucket.visible = entity.variant === 'bucket';
+          entity.heart.visible = entity.variant === 'heart';
+        }
       }
       if (entity.type === 'fish') {
-        entity.object.rotation.y = Math.sin(elapsed * 2 + entity.initialZ) * 0.4;
-        entity.object.position.y = 0.9 + Math.sin(elapsed * 3 + entity.initialZ) * 0.13;
+        if (entity.variant === 'heart') {
+          entity.heart.rotation.y = elapsed * 2.5;
+          entity.heart.position.y = 1.1 + Math.sin(elapsed * 4 + entity.initialZ) * 0.15;
+        } else {
+          entity.object.rotation.y = Math.sin(elapsed * 2 + entity.initialZ) * 0.15;
+          const fish = entity.bucket.userData.fish;
+          fish.position.y = 0.72 + Math.abs(Math.sin(elapsed * 5 + entity.initialZ)) * 0.4;
+          fish.rotation.z = Math.sin(elapsed * 5 + entity.initialZ) * 0.45;
+        }
       }
       if (!entity.collected && Math.abs(entity.object.position.z) < 1.2 && Math.abs(entity.object.position.x - game.lateral) < (entity.type === 'fish' ? 0.95 : 0.78)) {
         if (entity.type === 'fish') {
-          if (collectFish(game)) {
+          if (entity.variant === 'heart') {
+            if (collectHeart(game)) {
+              entity.collected = true;
+              entity.object.visible = false;
+              toast('+1 LIFE');
+              burst('#ff4d5e');
+            }
+          } else if (collectFish(game)) {
             entity.collected = true;
             entity.object.visible = false;
             toast('+FUEL  ·  FRESH CATCH');
@@ -240,14 +271,14 @@ function frame(now) {
     if (p.life <= 0) { scene.remove(p.object); particles.splice(i, 1); }
   }
 
-  // 越肩追尾相机
+  // 越肩追尾相机（高位俯视，避免鹈鹕挡住前方）
   const camX = rider.group.position.x * 0.6;
-  const camY = 3.2 + Math.min(0.5, game.speed * 0.02);
-  const camZ = 6.2 + Math.min(1.5, game.speed * 0.08);
+  const camY = 5.6 + Math.min(0.5, game.speed * 0.02);
+  const camZ = 7.8 + Math.min(1.2, game.speed * 0.06);
   camera.position.x += (camX - camera.position.x) * Math.min(1, dt * 4);
   camera.position.y += (camY - camera.position.y) * Math.min(1, dt * 4);
   camera.position.z += (camZ - camera.position.z) * Math.min(1, dt * 4);
-  cameraTarget.set(rider.group.position.x * 0.25, 1.0, -8);
+  cameraTarget.set(rider.group.position.x * 0.3, 0.3, -9);
   camera.lookAt(cameraTarget);
 
   renderer.render(scene, camera);
