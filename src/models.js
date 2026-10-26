@@ -139,6 +139,8 @@ export function updateRider(rig, motion, dt) {
   rig.group.rotation.y = -motion.heading;
   rig.group.position.x = motion.lateral;
   rig.body.scale.y = 0.69 + Math.sin(rig.phase * 2) * Math.min(0.015, motion.speed * 0.001);
+  // 转向时头部跟随左右转，展示侧脸
+  rig.head.rotation.y += (motion.steer * 0.62 - rig.head.rotation.y) * Math.min(1, dt * 7);
   rig.head.rotation.z = Math.sin(rig.phase) * Math.min(0.025, motion.speed * 0.002);
   rig.head.rotation.x = -0.04 + Math.sin(rig.phase * 2) * Math.min(0.02, motion.speed * 0.0015);
   for (let i = 0; i < rig.wings.length; i++) {
@@ -171,11 +173,17 @@ export function createFish() {
   mesh(new THREE.TorusGeometry(0.4, 0.02, 8, 20, Math.PI), palette.metal, bucket, [0, 0.55, 0]);
   mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.03, 16), material('#5fb8c9', { roughness: 0.25 }), bucket, [0, 0.5, 0]);
   const fish = group(bucket, [0, 0.72, 0]);
-  sphere(fish, palette.fish, [0, 0, 0], [0.09, 0.07, 0.17], 12);
-  const tail = mesh(new THREE.ConeGeometry(0.06, 0.11, 8), palette.coral, fish, [0, 0, 0.17]);
-  tail.rotation.x = Math.PI / 2;
-  sphere(fish, palette.black, [0.055, 0.02, -0.09], [0.018, 0.018, 0.018], 8);
-  sphere(fish, palette.black, [-0.055, 0.02, -0.09], [0.018, 0.018, 0.018], 8);
+  const body = sphere(fish, palette.fish, [0, 0, 0], [0.11, 0.09, 0.26], 12);
+  body.rotation.x = 0.1;
+  const tailFin = mesh(new THREE.ConeGeometry(0.11, 0.2, 4), palette.coral, fish, [0, 0.01, 0.3]);
+  tailFin.rotation.x = Math.PI / 2;
+  tailFin.scale.z = 0.35;
+  const dorsal = mesh(new THREE.ConeGeometry(0.05, 0.12, 4), palette.coral, fish, [0, 0.1, 0.02]);
+  dorsal.scale.z = 0.4;
+  for (const side of [-1, 1]) {
+    sphere(fish, palette.white, [side * 0.075, 0.03, -0.14], [0.032, 0.032, 0.032], 8);
+    sphere(fish, palette.black, [side * 0.085, 0.03, -0.16], [0.017, 0.017, 0.017], 8);
+  }
   bucket.userData.fish = fish;
   return bucket;
 }

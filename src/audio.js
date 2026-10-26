@@ -8,6 +8,11 @@ let muted = false;
 let bgmTimer = null;
 let nextNoteTime = 0;
 let noteIndex = 0;
+let stepScale = 1; // 存活越久节奏越快
+
+export function setBgmTempo(seconds) {
+  stepScale = 1 / (1 + Math.min(0.9, seconds * 0.007));
+}
 
 const STEP = 0.21; // 八分音符时长（秒）
 // C 大调两段循环：旋律 + 低音
@@ -87,14 +92,14 @@ function noiseBurst(at, duration, volume) {
 }
 
 function scheduleStep(at, index) {
-  tone('square', LEAD[index], at, STEP * 0.9, 0.045, null, bgmGain);
-  tone('triangle', BASS[index], at, STEP * 1.7, 0.09, null, bgmGain);
+  tone('square', LEAD[index], at, STEP * stepScale * 0.9, 0.045, null, bgmGain);
+  tone('triangle', BASS[index], at, STEP * stepScale * 1.7, 0.09, null, bgmGain);
 }
 
 function schedulerTick() {
   while (nextNoteTime < ctx.currentTime + 0.6) {
     scheduleStep(nextNoteTime, noteIndex % LEAD.length);
-    nextNoteTime += STEP;
+    nextNoteTime += STEP * stepScale;
     noteIndex += 1;
   }
 }

@@ -43,7 +43,7 @@ function stepGame(game, input, step) {
 
   // 自动持续加速，存活越久速度上限越高、加速越猛
   const maxSpeed = 18 + Math.min(16, game.elapsed * 0.18);
-  const accel = 0.4 + Math.min(0.8, game.elapsed * 0.008);
+  const accel = 0.8 + Math.min(1.6, game.elapsed * 0.016);
   game.speed += (maxSpeed - game.speed) * Math.min(1, accel * step);
 
   // 燃料持续消耗，速度越快消耗越快
