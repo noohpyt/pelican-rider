@@ -1,6 +1,8 @@
 export const ROAD_LIMIT = 4.1;
 export const TARGET_DISTANCE = 3000;
 export const MAX_LIVES = 3;
+// 调参面板可实时改的加速度倍率
+export const tuning = { accelBoost: 2 };
 
 export function createGame() {
   return {
@@ -40,7 +42,7 @@ function stepGame(game, input, step) {
 
   // 自动持续加速，存活越久速度上限越高、加速越猛；燃料耗尽则熄火滑行
   const maxSpeed = 18 + Math.min(16, game.elapsed * 0.18);
-  const accel = 1.2 + Math.min(2.4, game.elapsed * 0.024);
+  const accel = (1.2 + Math.min(2.4, game.elapsed * 0.024)) * tuning.accelBoost;
   if (game.fuel > 0) game.speed += (maxSpeed - game.speed) * Math.min(1, accel * step);
 
   // 燃料持续消耗，速度越快消耗越快

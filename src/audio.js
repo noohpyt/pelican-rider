@@ -10,8 +10,12 @@ let nextNoteTime = 0;
 let noteIndex = 0;
 let stepScale = 1; // 存活越久节奏越快
 
+export function bgmRate(seconds) {
+  return 1 + Math.min(0.9, seconds * 0.007);
+}
+
 export function setBgmTempo(seconds) {
-  stepScale = 1 / (1 + Math.min(0.9, seconds * 0.007));
+  stepScale = 1 / bgmRate(seconds);
 }
 
 const STEP = 0.21; // 八分音符时长（秒）

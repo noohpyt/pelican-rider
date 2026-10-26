@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, rankPercentile, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
+import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, rankPercentile, tuning, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
 import { createRider, updateRider, createFish, createObstacle, createHeart } from './models.js';
 import { createWorld } from './world.js';
 import { getParticleMaterial } from './effects.js';
-import { ensureAudio, startBgm, stopBgm, setWind, setBgmTempo, setMuted, isMuted, sfx } from './audio.js';
+import { ensureAudio, startBgm, stopBgm, setWind, setBgmTempo, bgmRate, setMuted, isMuted, sfx } from './audio.js';
 import './style.css';
 
 const app = document.querySelector('#app');
@@ -26,6 +26,8 @@ app.innerHTML = `
     </section>
     <div id="toast" class="toast" role="status"></div>
     <div id="flash" class="flash"></div>
+    <div id="speed-lines" class="speed-lines hidden" aria-hidden="true"><i></i><i></i></div>
+    <div id="tuner" class="tuner"><label>ACCEL ×<b id="tuner-value">2.0</b></label><input id="tuner-slider" type="range" min="0.5" max="8" step="0.1" value="2" aria-label="加速度倍率"><button id="tuner-hide" aria-label="隐藏调参面板">×</button><small>按 T 重新打开</small></div>
     <section id="start-screen" class="overlay start-screen">
       <div class="hero-copy">
         <h1>鹈鹕<br><em>骑自行车</em></h1>
@@ -134,7 +136,21 @@ function burst(color) {
     const object = new THREE.Mesh(particleGeometry, surface);
     object.position.set(rider.group.position.x, 1.4, 0);
     scene.add(object);
-    particles.push({ object, life: 0.75, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 3, vz: (Math.random() - 0.5) * 3 });
+    particles.push({ object, life: 0.75, maxLife: 0.75, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 3, vz: (Math.random() - 0.5) * 3 });
+  }
+}
+
+// BGM 拉满时车尾磨出的火花，随地面向后拖
+let sparkTimer = 0;
+const sparkColors = ['#ffd068', '#ff8c3a', '#fff2c9'];
+function emitSparks(dt) {
+  sparkTimer -= dt;
+  while (sparkTimer <= 0) {
+    sparkTimer += 0.03;
+    const object = new THREE.Mesh(particleGeometry, getParticleMaterial(sparkColors[(Math.random() * sparkColors.length) | 0]));
+    object.position.set(rider.group.position.x + (Math.random() - 0.5) * 0.5, 0.32, 0.9);
+    scene.add(object);
+    particles.push({ object, life: 0.38, maxLife: 0.38, vx: (Math.random() - 0.5) * 3, vy: 0.6 + Math.random() * 1.6, vz: game.speed * (0.85 + Math.random() * 0.3) });
   }
 }
 
@@ -168,6 +184,7 @@ addEventListener('keydown', (event) => {
   }
   if (event.code === 'Enter' && game.status !== 'running') startGame();
   if (event.code === 'Escape') $('#help').classList.add('hidden');
+  if (event.code === 'KeyT') $('#tuner').classList.toggle('hidden');
 });
 addEventListener('keyup', (event) => {
   if (keyMap[event.code]) input[keyMap[event.code]] = false;
@@ -184,6 +201,11 @@ $('#sound-toggle').addEventListener('click', () => {
 });
 $('#soundless').addEventListener('click', () => $('#help').classList.toggle('hidden'));
 $('#close-help').addEventListener('click', () => $('#help').classList.add('hidden'));
+$('#tuner-slider').addEventListener('input', (event) => {
+  tuning.accelBoost = Number(event.target.value);
+  $('#tuner-value').textContent = tuning.accelBoost.toFixed(1);
+});
+$('#tuner-hide').addEventListener('click', () => $('#tuner').classList.add('hidden'));
 for (const button of document.querySelectorAll('[data-key]')) {
   button.addEventListener('pointerdown', (event) => { input[button.dataset.key] = true; button.setPointerCapture(event.pointerId); });
   button.addEventListener('pointerup', () => { input[button.dataset.key] = false; });
@@ -320,6 +342,10 @@ function frame(now) {
     setWind(game.speed);
     setBgmTempo(game.elapsed);
   }
+  // BGM 1.5 倍速出现速度线，拉满（约 1.9 倍）车尾开始擦火花
+  const rate = game.status === 'running' ? bgmRate(game.elapsed) : 1;
+  $('#speed-lines').classList.toggle('hidden', rate < 1.5);
+  if (rate >= 1.89) emitSparks(dt);
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.life -= dt;
@@ -327,7 +353,7 @@ function frame(now) {
     p.object.position.x += p.vx * dt;
     p.object.position.y += p.vy * dt;
     p.object.position.z += p.vz * dt;
-    p.object.scale.setScalar(Math.max(0, p.life / 0.75));
+    p.object.scale.setScalar(Math.max(0, p.life / (p.maxLife || 0.75)));
     if (p.life <= 0) { scene.remove(p.object); particles.splice(i, 1); }
   }
 
