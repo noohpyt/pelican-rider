@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
+import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, rankPercentile, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
 import { createRider, updateRider, createFish, createObstacle, createHeart } from './models.js';
 import { createWorld } from './world.js';
 import { getParticleMaterial } from './effects.js';
+import { ensureAudio, startBgm, stopBgm, setWind, setMuted, isMuted, sfx } from './audio.js';
 import './style.css';
 
 const app = document.querySelector('#app');
@@ -13,7 +14,7 @@ app.innerHTML = `
     <header class="topbar">
       <a class="brand" href="#" aria-label="鹈鹕骑自行车 首页"><span class="brand-mark">PR</span><span>鹈鹕骑自行车</span></a>
       <div class="round-pill"><span class="dot"></span> ROAD <span class="round-number">01</span></div>
-      <button id="soundless" class="icon-button" aria-label="游戏操作说明">?</button>
+      <div class="topbar-actions"><button id="sound-toggle" class="icon-button" aria-label="声音开关">♪</button><button id="soundless" class="icon-button" aria-label="游戏操作说明">?</button></div>
     </header>
     <section id="hud" class="hud hidden" aria-label="游戏状态">
       <div class="timer-card"><span>SCORE</span><strong id="score">0000</strong></div>
@@ -34,7 +35,7 @@ app.innerHTML = `
       <div class="route-stamp"><span>TARGET</span><strong>${Math.round(TARGET_DISTANCE / 100)}</strong><span>00 METERS</span></div>
     </section>
     <section id="result-screen" class="overlay result-screen hidden" aria-live="polite">
-      <div class="result-card"><h2 id="result-title">游戏结束</h2><p id="result-copy"></p><div class="result-stats"><div><strong id="final-score">0</strong><span>SCORE</span></div><div><strong id="final-fish">0</strong><span>FUEL</span></div><div><strong id="best-score">0</strong><span>BEST</span></div></div><button id="restart" class="primary-button">再来一次 <span>↻</span></button><small>按 Enter 重新开始</small></div>
+      <div class="result-card"><h2 id="result-title">游戏结束</h2><p id="result-copy"></p><div class="result-stats"><div><strong id="final-score">0</strong><span>SCORE</span></div><div><strong id="final-fish">0</strong><span>FUEL</span></div><div><strong id="final-time">0:00</strong><span>TIME</span></div><div><strong id="final-rank">0%</strong><span>超越玩家</span></div><div><strong id="best-score">0</strong><span>BEST</span></div></div><button id="restart" class="primary-button">再来一次 <span>↻</span></button><small>按 Enter 重新开始</small></div>
     </section>
     <section id="help" class="help-card hidden"><button id="close-help" aria-label="关闭操作说明">×</button><h2>操作说明</h2><p><b>A / ←</b> 左移，<b>D / →</b> 右移。</p><p>自动加速。撞上石头扣生命、减速、扣燃料。收集水桶补充燃料。只剩一滴血时可能出现红心，拾取回一滴血。</p><p>燃料耗尽或生命耗尽失败；到达目标距离过关。</p></section>
     <div class="touch-controls hidden" id="touch-controls"><button data-key="left" aria-label="左移">←</button><button data-key="right" aria-label="右移">→</button></div>
@@ -116,6 +117,8 @@ const keyMap = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'ri
 function clearInput() { Object.keys(input).forEach((key) => { input[key] = false; }); }
 function startGame() {
   clearInput();
+  ensureAudio();
+  startBgm();
   resetGame(game);
   rider.phase = 0;
   for (const entity of entities) {
@@ -146,6 +149,12 @@ addEventListener('blur', clearInput);
 $('#start').addEventListener('click', startGame);
 $('#restart').addEventListener('click', startGame);
 $('.brand').addEventListener('click', (event) => event.preventDefault());
+$('#sound-toggle').addEventListener('click', () => {
+  ensureAudio();
+  setMuted(!isMuted());
+  $('#sound-toggle').textContent = isMuted() ? '✕' : '♪';
+  if (!isMuted() && game.status === 'running') startBgm();
+});
 $('#soundless').addEventListener('click', () => $('#help').classList.toggle('hidden'));
 $('#close-help').addEventListener('click', () => $('#help').classList.add('hidden'));
 for (const button of document.querySelectorAll('[data-key]')) {
@@ -173,13 +182,22 @@ function updateHud() {
 }
 let best = 0;
 try { best = Number(localStorage.getItem('pelican-bike-best')) || 0; } catch { best = 0; }
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 function showResult() {
   best = Math.max(best, game.score);
   try { localStorage.setItem('pelican-bike-best', String(best)); } catch { /* Storage is optional. */ }
   $('#result-title').textContent = game.status === 'failed' ? '失败' : '过关';
-  $('#result-copy').textContent = game.status === 'failed' ? '再试一次' : '到达终点';
+  $('#result-copy').textContent = game.status === 'failed'
+    ? `存活 ${formatTime(game.elapsed)}，超越了 ${rankPercentile(game.elapsed)}% 的玩家`
+    : `到达终点，用时 ${formatTime(game.elapsed)}`;
   $('#final-score').textContent = game.score;
   $('#final-fish').textContent = game.fish;
+  $('#final-time').textContent = formatTime(game.elapsed);
+  $('#final-rank').textContent = `${rankPercentile(game.elapsed)}%`;
   $('#best-score').textContent = best;
   $('#result-screen').classList.remove('hidden');
   $('#touch-controls').classList.add('hidden');
@@ -228,18 +246,21 @@ function frame(now) {
               entity.object.visible = false;
               toast('+1 LIFE');
               burst('#ff4d5e');
+              sfx.heart();
             }
           } else if (collectFish(game)) {
             entity.collected = true;
             entity.object.visible = false;
             toast('+FUEL  ·  FRESH CATCH');
             burst('#ffd068');
+            sfx.collect();
           }
         } else if (hitObstacle(game)) {
           entity.collected = true;
           entity.object.visible = false;
           toast('CRASH  ·  SLOW DOWN', true);
           burst('#ed6a4b');
+          sfx.crash();
           $('#flash').classList.remove('hit');
           void $('#flash').offsetWidth;
           $('#flash').classList.add('hit');
@@ -249,7 +270,12 @@ function frame(now) {
     updateHud();
   }
   if (game.status !== lastStatus) {
-    if (game.status === 'finished' || game.status === 'failed') showResult();
+    if (game.status === 'finished' || game.status === 'failed') {
+      stopBgm();
+      setWind(0);
+      if (game.status === 'finished') sfx.finish(); else sfx.fail();
+      showResult();
+    }
     lastStatus = game.status;
   }
   if (game.status === 'ready') {
@@ -260,6 +286,7 @@ function frame(now) {
   }
   rider.group.visible = game.invincible <= 0 || Math.floor(game.invincible * 12) % 2 === 0;
   world.update(elapsed, game.speed, dt);
+  if (game.status === 'running') setWind(game.speed);
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.life -= dt;

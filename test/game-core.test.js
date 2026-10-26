@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, updateGame, resetGame, hitObstacle, collectFish, collectHeart, MAX_LIVES, TARGET_DISTANCE } from '../src/game-core.js';
+import { createGame, updateGame, resetGame, hitObstacle, collectFish, collectHeart, rankPercentile, MAX_LIVES, TARGET_DISTANCE } from '../src/game-core.js';
 
 describe('game core', () => {
   it('starts ready with full fuel', () => {
@@ -44,6 +44,22 @@ describe('game core', () => {
     expect(game.fuel).toBe(68);
     game.status = 'finished';
     expect(collectFish(game)).toBe(false);
+  });
+
+  it('gets faster the longer you survive', () => {
+    const game = createGame();
+    game.status = 'running';
+    updateGame(game, {}, 10);
+    const early = game.speed;
+    expect(game.elapsed).toBeGreaterThan(9);
+    updateGame(game, {}, 40);
+    expect(game.speed).toBeGreaterThan(early);
+  });
+
+  it('estimates rank percentile from survival time', () => {
+    expect(rankPercentile(0)).toBe(0);
+    expect(rankPercentile(120)).toBeGreaterThan(50);
+    expect(rankPercentile(100000)).toBeLessThanOrEqual(99.7);
   });
 
   it('heart restores one life up to the cap', () => {

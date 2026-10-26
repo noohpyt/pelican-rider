@@ -17,6 +17,7 @@ export function createGame() {
     distance: 0,
     fuel: 100,
     invincible: 0,
+    elapsed: 0,
   };
 }
 
@@ -38,10 +39,12 @@ export function updateGame(game, input, dt) {
 function stepGame(game, input, step) {
   game.time = Math.max(0, game.time - step);
   game.invincible = Math.max(0, game.invincible - step);
+  game.elapsed += step;
 
-  // 自动持续加速，最高速度随距离略有提升
-  const maxSpeed = 18 + Math.min(10, game.distance / 400);
-  game.speed += (maxSpeed - game.speed) * Math.min(1, 0.4 * step);
+  // 自动持续加速，存活越久速度上限越高、加速越猛
+  const maxSpeed = 18 + Math.min(16, game.elapsed * 0.18);
+  const accel = 0.4 + Math.min(0.8, game.elapsed * 0.008);
+  game.speed += (maxSpeed - game.speed) * Math.min(1, accel * step);
 
   // 燃料持续消耗，速度越快消耗越快
   game.fuel = Math.max(0, game.fuel - (0.35 + game.speed * 0.018) * step);
@@ -97,6 +100,11 @@ export function collectHeart(game) {
   game.lives = Math.min(MAX_LIVES, game.lives + 1);
   game.score += 50;
   return true;
+}
+
+export function rankPercentile(seconds) {
+  // 本地估算：存活越久超越的玩家比例越高，封顶 99.7%
+  return Math.min(99.7, Math.round(1000 * (1 - Math.exp(-seconds / 80))) / 10);
 }
 
 export function hitObstacle(game) {
