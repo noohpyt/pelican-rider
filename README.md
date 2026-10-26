@@ -34,3 +34,7 @@ npm run preview
 
 - 未加入音频、联网排行榜、手柄支持；这些不属于本版范围。
 - Google Fonts 不可用时会回退到系统无衬线字体，不影响游戏。
+
+## License
+
+本项目采用 GNU General Public License v3.0（GPL-3.0）授权。详见 [LICENSE](./LICENSE) 文件。
