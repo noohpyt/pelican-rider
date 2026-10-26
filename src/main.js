@@ -12,7 +12,7 @@ app.innerHTML = `
     <div class="grain"></div>
     <header class="topbar">
       <a class="brand" href="#" aria-label="鹈鹕骑自行车 首页"><span class="brand-mark">PR</span><span>鹈鹕骑自行车</span></a>
-      <div class="round-pill"><span class="dot"></span> ROAD FIGHTER <span class="round-number">01</span></div>
+      <div class="round-pill"><span class="dot"></span> ROAD <span class="round-number">01</span></div>
       <button id="soundless" class="icon-button" aria-label="游戏操作说明">?</button>
     </header>
     <section id="hud" class="hud hidden" aria-label="游戏状态">
@@ -26,20 +26,17 @@ app.innerHTML = `
     <div id="flash" class="flash"></div>
     <section id="start-screen" class="overlay start-screen">
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> 红白机精神续作</p>
         <h1>鹈鹕<br><em>骑自行车</em></h1>
-        <p class="tagline">Serious bird. <span>Crazy road.</span></p>
-        <p class="intro">自动加速，左右变道。<br>躲开车辆，收集燃料，冲向终点。</p>
-        <button id="start" class="primary-button">出发 <span>→</span></button>
+        <p class="intro">自动加速，左右变道。<br>躲开车辆，收集燃料。</p>
+        <button id="start" class="primary-button">开始 <span>→</span></button>
         <div class="controls"><div><kbd>A</kbd><kbd>←</kbd><span>左移</span></div><div><kbd>D</kbd><kbd>→</kbd><span>右移</span></div></div>
       </div>
-      <div class="route-stamp"><span>TARGET</span><strong>${Math.round(TARGET_DISTANCE / 100)}</strong><span>HUNDRED METERS</span></div>
-      <p class="start-hint">HEADPHONES OPTIONAL · ROAD RAGE INCLUDED</p>
+      <div class="route-stamp"><span>TARGET</span><strong>${Math.round(TARGET_DISTANCE / 100)}</strong><span>00 METERS</span></div>
     </section>
     <section id="result-screen" class="overlay result-screen hidden" aria-live="polite">
-      <div class="result-card"><p class="eyebrow" id="result-eyebrow">FINISH LINE</p><h2 id="result-title">NICE RIDE!</h2><p id="result-copy">公路记住了你的车铃。</p><div class="result-stats"><div><strong id="final-score">0</strong><span>SCORE</span></div><div><strong id="final-fish">0</strong><span>FUEL</span></div><div><strong id="best-score">0</strong><span>BEST</span></div></div><button id="restart" class="primary-button">再来一次 <span>↻</span></button><small>或按 Enter 重新开始</small></div>
+      <div class="result-card"><h2 id="result-title">游戏结束</h2><p id="result-copy"></p><div class="result-stats"><div><strong id="final-score">0</strong><span>SCORE</span></div><div><strong id="final-fish">0</strong><span>FUEL</span></div><div><strong id="best-score">0</strong><span>BEST</span></div></div><button id="restart" class="primary-button">再来一次 <span>↻</span></button><small>按 Enter 重新开始</small></div>
     </section>
-    <section id="help" class="help-card hidden"><button id="close-help" aria-label="关闭操作说明">×</button><p class="eyebrow">HOW TO RIDE</p><h2>公路骑行指南</h2><p><b>A / ←</b> 向左变道，<b>D / →</b> 向右变道。</p><p>自行车自动加速；速度越快得分越快。撞上车辆扣 1 点生命、减速并损失燃料。收集鱼形燃料罐补充燃料。</p><p>燃料耗尽或 3 点生命耗尽则失败；到达目标距离即过关。</p></section>
+    <section id="help" class="help-card hidden"><button id="close-help" aria-label="关闭操作说明">×</button><h2>操作说明</h2><p><b>A / ←</b> 左移，<b>D / →</b> 右移。</p><p>自动加速。撞上车辆扣生命、减速、扣燃料。收集燃料罐补充燃料。</p><p>燃料耗尽或生命耗尽失败；到达目标距离过关。</p></section>
     <div class="touch-controls hidden" id="touch-controls"><button data-key="left" aria-label="左移">←</button><button data-key="right" aria-label="右移">→</button></div>
   </main>`;
 
@@ -167,9 +164,8 @@ try { best = Number(localStorage.getItem('pelican-rider-best')) || 0; } catch { 
 function showResult() {
   best = Math.max(best, game.score);
   try { localStorage.setItem('pelican-rider-best', String(best)); } catch { /* Storage is optional. */ }
-  $('#result-eyebrow').textContent = game.status === 'failed' ? 'A FEW RUFFLED FEATHERS' : 'FINISH LINE';
-  $('#result-title').textContent = game.status === 'failed' ? 'SHAKE IT OFF.' : 'YOU MADE IT!';
-  $('#result-copy').textContent = game.status === 'failed' ? '公路赢了这一回，鹈鹕还想再试一次。' : '终点线记住了你的车铃。';
+  $('#result-title').textContent = game.status === 'failed' ? '失败' : '过关';
+  $('#result-copy').textContent = game.status === 'failed' ? '再试一次' : '到达终点';
   $('#final-score').textContent = game.score;
   $('#final-fish').textContent = game.fish;
   $('#best-score').textContent = best;

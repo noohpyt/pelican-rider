@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { material, mesh, sphere, rod, setRod, tube, group } from './geometry.js';
+import { material, mesh, sphere, box, rod, setRod, tube, group } from './geometry.js';
 import { advanceCrank, pedalPosition, solveLeg, steeringAngle, WHEEL_RADIUS } from './animation.js';
 
 const palette = {
