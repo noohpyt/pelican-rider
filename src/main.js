@@ -41,7 +41,7 @@ app.innerHTML = `
   </main>`;
 
 const $ = (selector) => document.querySelector(selector);
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); // road-fighter style scene
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 400);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -160,10 +160,10 @@ function updateHud() {
   $('#lives').setAttribute('aria-label', `${game.lives} 点生命`);
 }
 let best = 0;
-try { best = Number(localStorage.getItem('pelican-rider-best')) || 0; } catch { best = 0; }
+try { best = Number(localStorage.getItem('pelican-bike-best')) || 0; } catch { best = 0; }
 function showResult() {
   best = Math.max(best, game.score);
-  try { localStorage.setItem('pelican-rider-best', String(best)); } catch { /* Storage is optional. */ }
+  try { localStorage.setItem('pelican-bike-best', String(best)); } catch { /* Storage is optional. */ }
   $('#result-title').textContent = game.status === 'failed' ? '失败' : '过关';
   $('#result-copy').textContent = game.status === 'failed' ? '再试一次' : '到达终点';
   $('#final-score').textContent = game.score;
