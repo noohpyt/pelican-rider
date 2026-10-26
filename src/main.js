@@ -103,22 +103,29 @@ for (let i = 0; i < 40; i++) {
 const particleGeometry = new THREE.SphereGeometry(0.055, 6, 4);
 const particles = [];
 
-// 低模鱼（Quaternius, CC0）：加载完成后替换水桶里的程序化小鱼
+// 低模鱼（Quaternius, CC0）：提取绑定姿态网格（跳过骨骼缩放），加载后替换水桶里的程序化小鱼
 new GLTFLoader().load('fish.glb', (gltf) => {
-  const source = gltf.scene;
-  source.traverse((child) => { if (child.isMesh) child.castShadow = true; });
+  const source = new THREE.Group();
+  gltf.scene.traverse((child) => {
+    if (child.isMesh || child.isSkinnedMesh) {
+      const m = new THREE.Mesh(child.geometry, child.material);
+      m.castShadow = true;
+      source.add(m);
+    }
+  });
   const bbox = new THREE.Box3().setFromObject(source);
   const size = bbox.getSize(new THREE.Vector3());
-  const scale = 0.55 / Math.max(size.x, size.y, size.z);
+  const scale = 0.5 / Math.max(size.x, size.y, size.z);
   const center = bbox.getCenter(new THREE.Vector3());
+  source.scale.setScalar(scale);
+  source.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+  const wrapper = new THREE.Group();
+  wrapper.add(source);
   for (const entity of entities) {
     if (entity.type !== 'fish') continue;
     const holder = entity.bucket.userData.fish;
     holder.clear();
-    const model = source.clone();
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-    holder.add(model);
+    holder.add(wrapper.clone());
   }
 });
 function burst(color) {
