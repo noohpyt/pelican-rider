@@ -140,7 +140,7 @@ export function updateRider(rig, motion, dt) {
   rig.group.position.x = motion.lateral;
   rig.body.scale.y = 0.69 + Math.sin(rig.phase * 2) * Math.min(0.015, motion.speed * 0.001);
   // 转向时头部跟随左右转，展示侧脸
-  rig.head.rotation.y += (motion.steer * 0.62 - rig.head.rotation.y) * Math.min(1, dt * 7);
+  rig.head.rotation.y += (-motion.steer * 1.24 - rig.head.rotation.y) * Math.min(1, dt * 7);
   rig.head.rotation.z = Math.sin(rig.phase) * Math.min(0.025, motion.speed * 0.002);
   rig.head.rotation.x = -0.04 + Math.sin(rig.phase * 2) * Math.min(0.02, motion.speed * 0.0015);
   for (let i = 0; i < rig.wings.length; i++) {

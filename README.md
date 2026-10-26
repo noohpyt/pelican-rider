@@ -40,6 +40,10 @@ npm run build
 npm run preview
 ```
 
+## 素材
+
+- 水桶中的鱼：[Fish by Quaternius](https://poly.pizza/m/Ymu8ftrmuT)，CC0 协议。
+
 ## License
 
 本项目采用 GNU General Public License v3.0（GPL-3.0）授权。详见 [LICENSE](./LICENSE) 文件。

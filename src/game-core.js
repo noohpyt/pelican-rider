@@ -1,4 +1,3 @@
-export const ROUND_TIME = 60;
 export const ROAD_LIMIT = 4.1;
 export const TARGET_DISTANCE = 3000;
 export const MAX_LIVES = 3;
@@ -6,7 +5,6 @@ export const MAX_LIVES = 3;
 export function createGame() {
   return {
     status: 'ready',
-    time: ROUND_TIME,
     score: 0,
     fish: 0,
     lives: MAX_LIVES,
@@ -37,14 +35,13 @@ export function updateGame(game, input, dt) {
 }
 
 function stepGame(game, input, step) {
-  game.time = Math.max(0, game.time - step);
   game.invincible = Math.max(0, game.invincible - step);
   game.elapsed += step;
 
-  // 自动持续加速，存活越久速度上限越高、加速越猛
+  // 自动持续加速，存活越久速度上限越高、加速越猛；燃料耗尽则熄火滑行
   const maxSpeed = 18 + Math.min(16, game.elapsed * 0.18);
-  const accel = 0.8 + Math.min(1.6, game.elapsed * 0.016);
-  game.speed += (maxSpeed - game.speed) * Math.min(1, accel * step);
+  const accel = 1.2 + Math.min(2.4, game.elapsed * 0.024);
+  if (game.fuel > 0) game.speed += (maxSpeed - game.speed) * Math.min(1, accel * step);
 
   // 燃料持续消耗，速度越快消耗越快
   game.fuel = Math.max(0, game.fuel - (0.35 + game.speed * 0.018) * step);
@@ -64,12 +61,6 @@ function stepGame(game, input, step) {
 
   if (game.distance >= TARGET_DISTANCE) {
     game.status = 'finished';
-    game.speed = 0;
-    return;
-  }
-
-  if (game.time === 0) {
-    game.status = 'failed';
     game.speed = 0;
     return;
   }

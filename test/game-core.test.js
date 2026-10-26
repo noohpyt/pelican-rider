@@ -4,7 +4,7 @@ import { createGame, updateGame, resetGame, hitObstacle, collectFish, collectHea
 describe('game core', () => {
   it('starts ready with full fuel', () => {
     const game = createGame();
-    expect(game).toMatchObject({ status: 'ready', time: 60, score: 0, lives: 3, speed: 0, fuel: 100 });
+    expect(game).toMatchObject({ status: 'ready', score: 0, lives: 3, speed: 0, fuel: 100 });
   });
 
   it('auto-accelerates and clamps lateral movement', () => {
@@ -101,6 +101,6 @@ describe('game core', () => {
     const game = createGame();
     Object.assign(game, { status: 'failed', score: 900, lives: 0, speed: 20, lateral: 3, fish: 9, fuel: 10, distance: 2000 });
     resetGame(game);
-    expect(game).toMatchObject({ status: 'running', score: 0, lives: 3, speed: 8, lateral: 0, fish: 0, time: 60, invincible: 0, fuel: 100, distance: 0 });
+    expect(game).toMatchObject({ status: 'running', score: 0, lives: 3, speed: 8, lateral: 0, fish: 0, invincible: 0, fuel: 100, distance: 0 });
   });
 });

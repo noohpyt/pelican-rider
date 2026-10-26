@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createGame, updateGame, resetGame, collectFish, collectHeart, hitObstacle, rankPercentile, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
 import { createRider, updateRider, createFish, createObstacle, createHeart } from './models.js';
 import { createWorld } from './world.js';
@@ -20,7 +21,7 @@ app.innerHTML = `
       <div class="timer-card"><span>SCORE</span><strong id="score">0000</strong></div>
       <div class="lives-card"><span>LIVES</span><div id="lives" aria-label="3 点生命">● ● ●</div></div>
       <div class="speed-card"><div class="speed-label"><b><span id="speed">0</span> km/h</b></div><div class="speed-track"><i id="speed-fill"></i></div></div>
-      <div class="fuel-card"><span>FUEL</span><div class="fuel-track"><i id="fuel-fill"></i></div></div>
+      <div class="fuel-card"><span>FISH</span><div class="fuel-track"><i id="fuel-fill"></i></div></div>
       <div class="distance-card"><span>DIST</span><strong id="distance">0</strong><small>/<span id="target-distance">${Math.round(TARGET_DISTANCE / 100)}</span>00 m</small></div>
     </section>
     <div id="toast" class="toast" role="status"></div>
@@ -101,6 +102,25 @@ for (let i = 0; i < 40; i++) {
 
 const particleGeometry = new THREE.SphereGeometry(0.055, 6, 4);
 const particles = [];
+
+// 低模鱼（Quaternius, CC0）：加载完成后替换水桶里的程序化小鱼
+new GLTFLoader().load('fish.glb', (gltf) => {
+  const source = gltf.scene;
+  source.traverse((child) => { if (child.isMesh) child.castShadow = true; });
+  const bbox = new THREE.Box3().setFromObject(source);
+  const size = bbox.getSize(new THREE.Vector3());
+  const scale = 0.55 / Math.max(size.x, size.y, size.z);
+  const center = bbox.getCenter(new THREE.Vector3());
+  for (const entity of entities) {
+    if (entity.type !== 'fish') continue;
+    const holder = entity.bucket.userData.fish;
+    holder.clear();
+    const model = source.clone();
+    model.scale.setScalar(scale);
+    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+    holder.add(model);
+  }
+});
 function burst(color) {
   const surface = getParticleMaterial(color);
   for (let i = 0; i < 12; i++) {
@@ -254,7 +274,7 @@ function frame(now) {
           } else if (collectFish(game)) {
             entity.collected = true;
             entity.object.visible = false;
-            toast('+FUEL  ·  FRESH CATCH');
+            toast('+FISH  ·  FRESH CATCH');
             burst('#ffd068');
             sfx.collect();
           }
