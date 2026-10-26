@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createGame, updateGame, resetGame, collectFish, hitObstacle, TARGET_DISTANCE } from './game-core.js';
+import { createGame, updateGame, resetGame, collectFish, hitObstacle, TARGET_DISTANCE, MAX_LIVES } from './game-core.js';
 import { createRider, updateRider, createFish, createObstacle } from './models.js';
 import { createWorld } from './world.js';
 import { getParticleMaterial } from './effects.js';
