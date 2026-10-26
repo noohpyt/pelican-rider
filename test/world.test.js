@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { createWorld } from '../src/world.js';
 
-describe('coastal world', () => {
-  it('keeps the sea geometry to the left of the road shoulder', () => {
+describe('road world', () => {
+  it('keeps the road centered and barriers outside the drivable area', () => {
     const scene = new THREE.Scene();
     createWorld(scene);
     scene.updateMatrixWorld(true);
-    const sea = scene.children.find((child) => child.material?.uniforms?.deep);
-    const bounds = new THREE.Box3().setFromObject(sea);
-    expect(bounds.max.x).toBeLessThanOrEqual(-5.5);
+    const road = scene.children.find((child) => child.geometry && child.geometry.parameters && child.geometry.parameters.width === 11.5);
+    expect(road).toBeDefined();
+    expect(road.position.x).toBe(0);
   });
 });

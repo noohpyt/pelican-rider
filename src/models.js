@@ -160,29 +160,39 @@ export function updateRider(rig, motion, dt) {
 }
 
 export function createFish() {
+  // 燃料罐：鱼形罐头
   const fish = new THREE.Group();
-  sphere(fish, palette.fish, [0, 0, 0], [0.25, 0.34, 0.52]);
-  sphere(fish, palette.white, [0, -0.13, -0.18], [0.2, 0.17, 0.29]);
-  const tail = mesh(new THREE.ConeGeometry(0.32, 0.5, 3), palette.coral, fish, [0, 0, 0.59]);
-  tail.rotation.x = Math.PI / 2;
-  for (const side of [-1, 1]) {
-    sphere(fish, palette.white, [side * 0.19, 0.12, -0.29], [0.09, 0.1, 0.08], 16);
-    sphere(fish, palette.ink, [side * 0.21, 0.12, -0.34], [0.045, 0.055, 0.04], 12);
-  }
-  const fin = mesh(new THREE.ConeGeometry(0.13, 0.35, 3), palette.yellow, fish, [0, 0.37, 0.05]);
-  fin.rotation.z = Math.PI;
+  const can = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.72, 16), palette.fish, fish, [0, 0, 0]);
+  can.rotation.z = Math.PI / 2;
+  mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16), palette.metal, fish, [0.36, 0, 0]);
+  mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16), palette.metal, fish, [-0.36, 0, 0]);
+  const fin = mesh(new THREE.BoxGeometry(0.15, 0.45, 0.06), palette.coral, fish, [0.1, 0.12, 0.32]);
+  fin.rotation.z = 0.35;
   fish.scale.setScalar(0.85);
   return fish;
 }
 
 export function createObstacle() {
-  const obstacle = new THREE.Group();
-  const base = mesh(new THREE.CylinderGeometry(0.43, 0.52, 0.12, 16), palette.ink, obstacle, [0, 0.06, 0]);
-  base.receiveShadow = true;
-  mesh(new THREE.ConeGeometry(0.34, 1.05, 20), palette.coral, obstacle, [0, 0.62, 0]);
-  mesh(new THREE.CylinderGeometry(0.265, 0.32, 0.2, 20), palette.ivory, obstacle, [0, 0.49, 0]);
-  mesh(new THREE.CylinderGeometry(0.11, 0.18, 0.16, 20), palette.ivory, obstacle, [0, 0.9, 0]);
-  return obstacle;
+  // 路上的车辆
+  const car = new THREE.Group();
+  const bodyColors = ['#c94c4c', '#4c7ac9', '#d4a83b', '#5a9c6b', '#7a4cc9'];
+  const bodyColor = bodyColors[Math.floor(Math.random() * bodyColors.length)];
+  const bodyMat = material(bodyColor, { roughness: 0.4, metalness: 0.1 });
+  const glassMat = material('#7ab4c9', { roughness: 0.15, metalness: 0.4 });
+  const wheelMat = material('#2a2a2a', { roughness: 0.9 });
+
+  box(car, bodyMat, [0, 0.55, 0], [1.05, 0.5, 2.1]);
+  box(car, glassMat, [0, 0.92, -0.1], [0.95, 0.32, 1.1]);
+  box(car, material('#e8e8e8'), [0, 0.48, 1.05], [0.9, 0.18, 0.08]);
+  box(car, material('#e84c4c'), [0, 0.52, -1.05], [0.7, 0.18, 0.08]);
+
+  for (const side of [-1, 1]) {
+    for (const z of [-0.65, 0.65]) {
+      const wheel = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 16), wheelMat, car, [side * 0.58, 0.22, z]);
+      wheel.rotation.x = Math.PI / 2;
+    }
+  }
+  return car;
 }
 
 export function createPalm() {
